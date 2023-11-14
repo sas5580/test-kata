@@ -1,58 +1,131 @@
 package gildedrose
 
+import "strings"
+
+const (
+	defaultMaxQuality = 50
+
+	agedBrieName        = "Aged Brie"
+	sulfurasName        = "Sulfuras, Hand of Ragnaros"
+	backstagePassesName = "Backstage passes to a TAFKAL80ETC concert"
+	conjuredPrefix      = "Conjured"
+)
+
+type DepreciatingItem interface {
+	UpdateQuality()
+	GetName() string
+	GetSellIn() int
+	GetQuality() int
+}
+
 type Item struct {
 	Name            string
 	SellIn, Quality int
 }
 
-func UpdateQuality(items []*Item) {
-	for i := 0; i < len(items); i++ {
+func NewItem(name string, sellIn, quality int) DepreciatingItem {
+	i := Item{Name: name, SellIn: sellIn, Quality: quality}
+	switch {
+	case i.Name == agedBrieName:
+		return &AgedBrieItem{i}
+	case i.Name == sulfurasName:
+		return &SulfurasItem{i}
+	case i.Name == backstagePassesName:
+		return &BackstagePassesItem{i}
+	case strings.HasPrefix(i.Name, conjuredPrefix):
+		return &ConjuredItem{i}
+	default:
+		return &i
+	}
+}
 
-		if items[i].Name != "Aged Brie" && items[i].Name != "Backstage passes to a TAFKAL80ETC concert" {
-			if items[i].Quality > 0 {
-				if items[i].Name != "Sulfuras, Hand of Ragnaros" {
-					items[i].Quality = items[i].Quality - 1
-				}
-			}
-		} else {
-			if items[i].Quality < 50 {
-				items[i].Quality = items[i].Quality + 1
-				if items[i].Name == "Backstage passes to a TAFKAL80ETC concert" {
-					if items[i].SellIn < 11 {
-						if items[i].Quality < 50 {
-							items[i].Quality = items[i].Quality + 1
-						}
-					}
-					if items[i].SellIn < 6 {
-						if items[i].Quality < 50 {
-							items[i].Quality = items[i].Quality + 1
-						}
-					}
-				}
-			}
-		}
+func (i *Item) GetName() string {
+	return i.Name
+}
 
-		if items[i].Name != "Sulfuras, Hand of Ragnaros" {
-			items[i].SellIn = items[i].SellIn - 1
-		}
+func (i *Item) GetSellIn() int {
+	return i.SellIn
+}
 
-		if items[i].SellIn < 0 {
-			if items[i].Name != "Aged Brie" {
-				if items[i].Name != "Backstage passes to a TAFKAL80ETC concert" {
-					if items[i].Quality > 0 {
-						if items[i].Name != "Sulfuras, Hand of Ragnaros" {
-							items[i].Quality = items[i].Quality - 1
-						}
-					}
-				} else {
-					items[i].Quality = items[i].Quality - items[i].Quality
-				}
-			} else {
-				if items[i].Quality < 50 {
-					items[i].Quality = items[i].Quality + 1
-				}
-			}
-		}
+func (i *Item) GetQuality() int {
+	return i.Quality
+}
+
+func (i *Item) UpdateQuality() {
+	i.SellIn -= 1
+
+	decrement := 1
+	if i.SellIn < 0 {
+		decrement = 2
+	}
+	i.Quality = max(i.Quality-decrement, 0)
+}
+
+type AgedBrieItem struct {
+	Item
+}
+
+func (i *AgedBrieItem) UpdateQuality() {
+	i.SellIn -= 1
+	i.Quality = min(i.Quality+1, defaultMaxQuality)
+}
+
+type SulfurasItem struct {
+	Item
+}
+
+func (i *SulfurasItem) UpdateQuality() {
+	// do nothing, Quality nor SellIn changes
+}
+
+type BackstagePassesItem struct {
+	Item
+}
+
+func (i *BackstagePassesItem) UpdateQuality() {
+	i.SellIn -= 1
+	if i.SellIn < 0 {
+		i.Quality = 0
+		return
 	}
 
+	increment := 1
+	if i.SellIn < 5 {
+		increment = 3
+	} else if i.SellIn < 10 {
+		increment = 2
+	}
+	i.Quality = min(i.Quality+increment, defaultMaxQuality)
+}
+
+type ConjuredItem struct {
+	Item
+}
+
+func (i *ConjuredItem) UpdateQuality() {
+	prevQuality := i.GetQuality()
+	i.Item.UpdateQuality()
+	// degrade twice as fast as regular item
+	decrement := prevQuality - i.Quality
+	i.Quality = max(i.Quality-decrement, 0)
+}
+
+func UpdateQuality(items []DepreciatingItem) {
+	for _, item := range items {
+		item.UpdateQuality()
+	}
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
