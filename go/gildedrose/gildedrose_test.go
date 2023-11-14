@@ -35,11 +35,14 @@ func Test_AgedBrie(t *testing.T) {
 	updateQualityN(items, 5)
 	checkItem(t, items[0], 0, 35)
 
-	updateQualityN(items, 15)
-	checkItem(t, items[0], -15, 50)
+	updateQualityN(items, 1)
+	checkItem(t, items[0], -1, 37)
 
-	updateQualityN(items, 20)
-	checkItem(t, items[0], -35, 50)
+	updateQualityN(items, 6)
+	checkItem(t, items[0], -7, 49)
+
+	updateQualityN(items, 13)
+	checkItem(t, items[0], -20, 50)
 }
 
 func Test_Sulfuras(t *testing.T) {

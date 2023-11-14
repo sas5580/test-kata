@@ -67,7 +67,12 @@ type AgedBrieItem struct {
 
 func (i *AgedBrieItem) UpdateQuality() {
 	i.SellIn -= 1
-	i.Quality = min(i.Quality+1, defaultMaxQuality)
+
+	increment := 1
+	if i.SellIn < 0 {
+		increment = 2
+	}
+	i.Quality = min(i.Quality+increment, defaultMaxQuality)
 }
 
 type SulfurasItem struct {
